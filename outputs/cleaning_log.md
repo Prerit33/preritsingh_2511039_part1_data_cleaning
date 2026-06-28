@@ -1,47 +1,29 @@
 BUSINESS RULES & DATA PROCESSING DOCUMENTATION
+==============================================
 
-1. TEXT STANDARDIZATION & CLEANING RULES
-----------------------------------------
-- Spacing & Non-Printable Characters: Leading, trailing, and double spaces were removed using TRIM/regex equivalents. Non-printable system artifacts were purged.
-- Special Characters: Stray symbols (such as '#', '*', '_') appended by internal systems were stripped from all text fields (Customer Name, Category, etc.).
-- Casing: 
-  * 'State' codes were standardized to UPPERCASE.
-  * All other text fields (Customer Name, Segment, Region, City, Sub-Category, Ship Mode) were standardized to Proper Title Case.
+1. DISCOUNT VALIDATION
+----------------------
+- Rule: Discounts cannot be negative.
+  Action: Created a 'Discount_Validation_Flag'. Any discount value < 0 was explicitly flagged as "Invalid - Negative Discount".
+- Rule: Discounts cannot exceed the allowable limit (100% or 1.0).
+  Action: Any discount value > 1.0 was flagged as "Invalid - Discount Above Allowed Range".
+- Result: Valid discounts are marked as "Valid", allowing for easy filtering of data-entry anomalies without destroying the original record.
 
-2. CATEGORY & STATUS MAPPING RULES
-----------------------------------
-- Product Categories: Consolidated fragmented and misspelled categories into a strict taxonomy:
-  * 'Furn', 'furnitures', 'furn' -> 'Furniture'
-  * 'Office Sup', 'office sup' -> 'Office Supplies'
-  * 'Tech', 'tech' -> 'Technology'
-- Payment Status: 
-  * 'success' -> 'Paid'
-  * 'declined' -> 'Failed'
-  * 'Pending' -> 'Pending'
-- Order Status: 
-  * 'shipped' -> 'Shipped'
-  * 'processing' -> 'Processing'
-  * 'Delivered' -> 'Delivered'
+2. LOGISTICAL VALIDATION (DATE INTEGRITY)
+-----------------------------------------
+- Rule: An order cannot be shipped before it is placed.
+  Action: Compared 'order_date' and 'ship_date'.
+- Result: Any record where ship_date < order_date was flagged as "Invalid - Ship Date Earlier Than Order Date" in a new 'Date_Validation_Flag_Final' column.
 
-3. DUPLICATE HANDLING RULES
----------------------------
-- Exact Duplicates: Rows where every single column perfectly matched another row were classified as system export glitches. The first instance was retained, and all redundant copies were removed entirely from the active dataset.
-- Conflicting Duplicates: Rows sharing the same 'order_id' but containing conflicting information in other columns (e.g., different ship dates or product names) were NOT deleted. 
-  * Action: These were retained and explicitly marked with "Conflicting Duplicate - Review Required" in a new 'Duplicate_Status' column for manual stakeholder review.
+3. SUMMARY REPORTING RULES (COMPLETED SALES)
+--------------------------------------------
+- Rule: Cancelled orders do not represent realized revenue and must be excluded.
+- Rule: Failed payments represent unrealized transactions and must be excluded.
+- Action: Created the 'Completed_Sales_Summary' tab by completely filtering out any row where 'order_status' = Cancelled OR 'payment_status' = Failed.
 
-4. MISSING DATA IMPUTATION (BUSINESS RULES)
--------------------------------------------
-- Sub-Category Backfilling: 
-  * Rule 1: If Category is 'Technology' and Product Name contains the word 'Phone' (case-insensitive), the missing/incorrect Sub-Category is forced to 'Phones'.
-  * Rule 2: If Category is 'Furniture' and Product Name contains the word 'Chair' (case-insensitive), the missing/incorrect Sub-Category is forced to 'Chairs'.
+4. SUMMARY REPORTING RULES (REFUNDS & RETURNS)
+----------------------------------------------
+- Rule: Refunded and returned orders require a separate audit view to assess impact.
+- Action: Created the 'Refunded_Orders_Summary' tab by filtering ONLY for rows where 'order_status' = Refunded or Returned. This tab calculates the lost sales volume, lost profit, and number of affected orders by category.
 
-5. FINANCIAL CALCULATIONS & FLAG LOGIC
---------------------------------------
-- Profit Margin Calculation: 
-  * Formula: (Profit / Sales) * 100
-  * Rounding: Strictly rounded to 2 decimal places.
-  * Exception Handling: If Sales = 0 or is missing, the margin defaults to 0% to prevent division errors.
-- Profitability Tiering (Flagging):
-  * 'Loss': Assigned if Profit Margin is less than 0%.
-  * 'Low Profit': Assigned if Profit Margin is between 0.00% and 9.99%.
-  * 'High Profit': Assigned if Profit Margin is 10.00% or greater.
+Note: Invalid rows were securely flagged in the master 'Processed_Data' tab rather than being deleted, preserving the audit trail for data correction teams.
