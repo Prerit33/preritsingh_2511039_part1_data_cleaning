@@ -1,4 +1,4 @@
-*TASK 5 - BUSINESS RULES & DATA PROCESSING DOCUMENTATION
+TASK 5 - BUSINESS RULES & DATA PROCESSING DOCUMENTATION
 ==============================================
 
 1. DISCOUNT VALIDATION
@@ -28,8 +28,8 @@
 
 Note: Invalid rows were securely flagged in the master 'Processed_Data' tab rather than being deleted, preserving the audit trail for data correction teams.
 
-
-*TASK 9 - COMPREHENSIVE DATA CLEANING & PROCESSING LOG
+TASK 9 - COMPREHENSIVE DATA CLEANING & PROCESSING LOG
+==============================================
 
 
 1. LIST OF ISSUES FOUND
